@@ -4,6 +4,8 @@ module Test.Hspec.Core.SpecSpec (spec) where
 import           Prelude ()
 import           Helper
 
+import           Data.Maybe
+
 import           Test.Hspec.Core.Spec (Item(..), Result(..), ResultStatus(..))
 import qualified Test.Hspec.Core.Runner as H
 import           Test.Hspec.Core.Spec (Tree(..))
@@ -131,3 +133,16 @@ spec = do
     it "takes precedence over a later `parallel`" $ do
       items <- extract itemIsParallelizable . H.parallel . H.sequential $ H.it "whatever" H.pending
       items `shouldBe` [Leaf $ Just False]
+
+  describe "withValue" $ do
+    it "stores a value that can be retrieved later" $ do
+      let
+        askValue = fromMaybe "" <$> H.askValue
+        item = askValue >>= flip H.it True
+      items <- extract itemRequirement $ do
+        H.withValue "foo" $ do
+          item
+          H.withValue "bar" $ do
+            item
+          item
+      items `shouldBe` [Leaf "foo", Leaf "bar", Leaf "foo"]
